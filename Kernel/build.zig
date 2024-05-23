@@ -26,7 +26,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    kernel.addAssemblyFile(b.path("src/start.s"));
     kernel.linker_script = b.path("klinker.ld");
 
     b.installArtifact(kernel);
