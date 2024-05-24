@@ -10,13 +10,13 @@ export const header: MultiBoot.struct_multiboot_elf_header align(4) linksection(
 
 export var kstack: [1024 * 16]u8 align(16) linksection(".bss") = undefined;
 export fn _start() callconv(.Naked) noreturn {
-    asm volatile("hlt");
     asm volatile ("mov %[stack], %%esp"
         :
         : [stack] "r" (kstack),
     );
     asm volatile ("call kernel_main");
-    while (true) {}
+    asm volatile ("back: hlt");
+    asm volatile ("jmp back");
 }
 // main
 const console = @import("share/Console.zig");
