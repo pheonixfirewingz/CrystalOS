@@ -4,41 +4,36 @@ const CrossTarget = @import("std").zig.CrossTarget;
 const Feature = @import("std").Target.Cpu.Feature;
 
 pub fn build(b: *std.Build) void {
-    const features = Target.x86.Feature;
-
-    var disabled_features = Feature.Set.empty;
-    var enabled_features = Feature.Set.empty;
-
-    disabled_features.addFeature(@intFromEnum(features.mmx));
-    disabled_features.addFeature(@intFromEnum(features.sse));
-    disabled_features.addFeature(@intFromEnum(features.sse2));
-    disabled_features.addFeature(@intFromEnum(features.avx));
-    disabled_features.addFeature(@intFromEnum(features.avx2));
-    enabled_features.addFeature(@intFromEnum(features.soft_float));
-
-    const query = CrossTarget{ .cpu_arch = Target.Cpu.Arch.x86_64, .os_tag = Target.Os.Tag.freestanding, .abi = Target.Abi.none, .cpu_features_sub = disabled_features, .cpu_features_add = enabled_features };
-    const target = b.standardTargetOptions(.{ .default_target = query });
     const optimize = b.standardOptimizeOption(.{});
-
-    const kernel = b.addExecutable(.{
-        .name = "Molton",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    kernel.linker_script = b.path("klinker.ld");
-
-    b.installArtifact(kernel);
+    var kernel = buildPreKernel(b, optimize);
+    var pre_kernel = buildKernel(b, optimize);
 
     const kernel_step = b.step("kernel", "Build the kernel");
     kernel_step.dependOn(&kernel.step);
+    kernel_step.dependOn(&pre_kernel.step);
 
     const root_dir = b.fmt("{s}/zig-out", .{b.build_root.path.?});
     const iso_dir = b.fmt("{s}/iso_root", .{root_dir});
+    const boot_dir = b.fmt("{s}/boot", .{iso_dir});
+    const pre_kernel_path = b.fmt("{s}/bin/preMolton", .{root_dir});
     const kernel_path = b.fmt("{s}/bin/Molton", .{root_dir});
     const iso_path = b.fmt("{s}/disk.iso", .{b.exe_dir});
 
-    const iso_cmd_str = &[_][]const u8{ "/bin/sh", "-c", std.mem.concat(b.allocator, u8, &[_][]const u8{ "mkdir -p ", iso_dir, " && ", "cp ", kernel_path, " ", iso_dir, " && ", "cp src/grub.cfg ", iso_dir, " && ", "grub-mkrescue -o ", iso_path, " ", iso_dir }) catch unreachable };
+    const iso_cmd_str = &[_][]const u8{
+        "/bin/sh", "-c", std.mem.concat(b.allocator, u8, &[_][]const u8{
+            "mkdir -p ",         iso_dir, //
+            "&& mkdir -p ",      boot_dir,
+            " && ",              "cp ",
+            kernel_path,         " ",
+            boot_dir,            " && ",
+            "cp ",               pre_kernel_path,
+            " ",                 boot_dir,
+            " && ",              "cp src/grub.cfg ",
+            boot_dir,            " && ",
+            "grub-mkrescue -o ", iso_path,
+            " ",                 iso_dir,
+        }) catch unreachable,
+    };
 
     const iso_cmd = b.addSystemCommand(iso_cmd_str);
     iso_cmd.step.dependOn(kernel_step);
@@ -54,4 +49,53 @@ pub fn build(b: *std.Build) void {
 
     const run_step = b.step("run", "Run the kernel");
     run_step.dependOn(&run_cmd.step);
+}
+
+pub fn buildKernel(b: *std.Build, optimize: std.builtin.OptimizeMode) *std.Build.Step.Compile {
+    const features = Target.x86.Feature;
+
+    var disabled_features = Feature.Set.empty;
+    disabled_features.addFeature(@intFromEnum(features.mmx));
+    disabled_features.addFeature(@intFromEnum(features.avx));
+    disabled_features.addFeature(@intFromEnum(features.avx2));
+
+    const query = CrossTarget{ .cpu_arch = Target.Cpu.Arch.x86_64, .os_tag = Target.Os.Tag.freestanding, .abi = Target.Abi.none, .cpu_features_sub = disabled_features };
+
+    const kernel = b.addExecutable(.{
+        .name = "Molton",
+        .root_source_file = b.path("src/kernel/main.zig"),
+        .target = b.resolveTargetQuery(query),
+        .optimize = optimize,
+    });
+    kernel.linker_script = b.path("klinker.ld");
+
+    b.installArtifact(kernel);
+    return kernel;
+}
+
+pub fn buildPreKernel(b: *std.Build, optimize: std.builtin.OptimizeMode) *std.Build.Step.Compile {
+    const features = Target.x86.Feature;
+
+    var disabled_features = Feature.Set.empty;
+    var enabled_features = Feature.Set.empty;
+
+    disabled_features.addFeature(@intFromEnum(features.mmx));
+    disabled_features.addFeature(@intFromEnum(features.sse));
+    disabled_features.addFeature(@intFromEnum(features.sse2));
+    disabled_features.addFeature(@intFromEnum(features.avx));
+    disabled_features.addFeature(@intFromEnum(features.avx2));
+    enabled_features.addFeature(@intFromEnum(features.soft_float));
+
+    const query = CrossTarget{ .cpu_arch = Target.Cpu.Arch.x86, .os_tag = Target.Os.Tag.freestanding, .abi = Target.Abi.none, .cpu_features_sub = disabled_features, .cpu_features_add = enabled_features };
+
+    const prekernel = b.addExecutable(.{
+        .name = "preMolton",
+        .root_source_file = b.path("src/prekernel/main.zig"),
+        .target = b.resolveTargetQuery(query),
+        .optimize = optimize,
+    });
+    prekernel.linker_script = b.path("klinker.ld");
+
+    b.installArtifact(prekernel);
+    return prekernel;
 }
