@@ -4,7 +4,7 @@ const CrossTarget = @import("std").zig.CrossTarget;
 const Feature = @import("std").Target.Cpu.Feature;
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{.preferred_optimize_mode = .Debug});
     var kernel = buildPreKernel(b, optimize);
     var pre_kernel = buildKernel(b, optimize);
 
@@ -15,6 +15,7 @@ pub fn build(b: *std.Build) void {
     const root_dir = b.fmt("{s}/zig-out", .{b.build_root.path.?});
     const iso_dir = b.fmt("{s}/iso_root", .{root_dir});
     const boot_dir = b.fmt("{s}/boot", .{iso_dir});
+    const grub_dir = b.fmt("{s}/grub", .{boot_dir});
     const pre_kernel_path = b.fmt("{s}/bin/preMolton", .{root_dir});
     const kernel_path = b.fmt("{s}/bin/Molton", .{root_dir});
     const iso_path = b.fmt("{s}/disk.iso", .{b.exe_dir});
@@ -23,13 +24,14 @@ pub fn build(b: *std.Build) void {
         "/bin/sh", "-c", std.mem.concat(b.allocator, u8, &[_][]const u8{
             "mkdir -p ",         iso_dir, //
             "&& mkdir -p ",      boot_dir,
+            "&& mkdir -p ",      grub_dir,
             " && ",              "cp ",
             kernel_path,         " ",
             boot_dir,            " && ",
             "cp ",               pre_kernel_path,
             " ",                 boot_dir,
             " && ",              "cp src/grub.cfg ",
-            boot_dir,            " && ",
+            grub_dir,            " && ",
             "grub-mkrescue -o ", iso_path,
             " ",                 iso_dir,
         }) catch unreachable,

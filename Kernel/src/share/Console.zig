@@ -1,5 +1,10 @@
 const fmt = @import("std").fmt;
 const Writer = @import("std").io.Writer;
+const cpu = switch (@import("builtin").cpu.arch) {
+    .x86 => @import("common/Cpu/x86.zig"),
+    .x86_64 => @import("common/Cpu/x86.zig"),
+    else => @compileError("unsupported cpu architecture"),
+};
 
 const VGA_WIDTH = 80;
 const VGA_HEIGHT = 25;
@@ -40,6 +45,13 @@ inline fn vgaEntry(uc: u8, new_color: u8) u16 {
 }
 
 pub fn initialize() void {
+    cpu.outb(0x3f8 + 1, 0x00);
+    cpu.outb(0x3f8 + 3, 0x80);
+    cpu.outb(0x3f8 + 0, 0x03);
+    cpu.outb(0x3f8 + 1, 0x00);
+    cpu.outb(0x3f8 + 3, 0x03);
+    cpu.outb(0x3f8 + 2, 0xC7);
+    cpu.outb(0x3f8 + 4, 0x0B);
     clear();
 }
 
@@ -57,14 +69,23 @@ pub fn putCharAt(c: u8, new_color: u8, x: usize, y: usize) void {
 }
 
 pub fn putChar(c: u8) void {
-    putCharAt(c, color, column, row);
-    column += 1;
-    if (column == VGA_WIDTH) {
+    if (c == '\n') {
         column = 0;
         row += 1;
         if (row == VGA_HEIGHT)
             row = 0;
+    } else {
+        putCharAt(c, color, column, row);
+        column += 1;
+        if (column == VGA_WIDTH) {
+            column = 0;
+            row += 1;
+            if (row == VGA_HEIGHT)
+                row = 0;
+        }
     }
+    while ((cpu.inb(0x3f8 + 5) & 0x20) == 0) {} // Wait for empty transmit buffer
+    cpu.outb(0x3f8, c);
 }
 
 pub fn puts(data: []const u8) void {
