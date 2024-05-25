@@ -2,33 +2,35 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "Attach to gdbserver",
-            "executable": "${workspaceRoot}/Kernel/zig-out/bin/preMolton",
-            "target": ":1234",
-            "remote": true,
-            "cwd": "${workspaceRoot}",
-            "valuesFormatting": "parseText",
+            "name": "QEMU GDB Remote Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/Kernel/zig-out/bin/preMolton",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
             "setupCommands": [
                 {
-                    "description": "Interrupt the target",
-                    "text": "-exec-interrupt",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set GDB to use the correct architecture",
-                    "text": "set architecture i386:x86-64",
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
             ],
-            "postAttachCommands": [
-                {
-                    "description": "Recheck and set architecture after attaching",
-                    "text": "set architecture i386:x86-64",
-                    "ignoreFailures": true
-                }
-            ],
+            "miDebuggerServerAddress": "localhost:1234",
+            "miDebuggerPath": "/usr/bin/gdb-multiarch",
+            "targetArchitecture": "x86_64",
+            "preLaunchTask": "",
+            "postDebugTask": "",
+            "logging": {
+                "engineLogging": true
+            },
+            "serverLaunchTimeout": 10000,
+            "filterStdout": true,
+            "filterStderr": false,
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }
