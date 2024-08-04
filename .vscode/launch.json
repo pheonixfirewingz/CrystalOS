@@ -2,12 +2,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "QEMU GDB Remote Debug",
+            "name": "Connect to QEMU",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/Kernel/zig-out/bin/preMolton",
+            "program": "/home/digitech/Desktop/CrystalOS/build/preKernel/PreMolton",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
@@ -17,20 +17,38 @@
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "set disassembly-flavor intel"
+                },
+                {
+                    "description": "Set Target Architecture to x86_64",
+                    "text": "set arch i386:x86-64:intel"
                 }
             ],
+            "postRemoteConnectCommands": [
+                {
+                    "description": "tell qemu to start debugging",
+                    "text": "maintenance packet qqemu.PhyMemMode=on"
+                }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb", // Adjust this path if your GDB is located elsewhere
             "miDebuggerServerAddress": "localhost:1234",
-            "miDebuggerPath": "/usr/bin/gdb-multiarch",
-            "targetArchitecture": "x86_64",
-            "preLaunchTask": "",
-            "postDebugTask": "",
-            "logging": {
-                "engineLogging": true
-            },
-            "serverLaunchTimeout": 10000,
+            "serverStarted": "",
             "filterStdout": true,
-            "filterStderr": false,
-            "internalConsoleOptions": "openOnSessionStart"
+            "filterStderr": true,
+            "preLaunchTask": "Run QEMU",
+            "postDebugTask": "Terminate QEMU",
+            "logging": {
+                "trace": true,
+                "traceResponse": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            },
+            "targetArchitecture": "x86_64",
+            "stopAtConnect": true
         }
     ]
 }

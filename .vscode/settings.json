@@ -1,7 +1,12 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "files.associations": {
-        "attributes.h": "c"
+        "attributes.h": "c",
+        "stdarg.h": "c",
+        "stdint.h": "c",
+        "stdint-gcc.h": "c",
+        "physicalpaging.h": "c",
+        "mutliboot.h": "c"
     },
     "cSpell.words": [
         "Multiboot"
